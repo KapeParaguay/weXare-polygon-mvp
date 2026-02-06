@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7f7f2;
+  --fg: #0f172a;
+  --accent: #2563eb;
+}
+
+body {
+  background: radial-gradient(circle at top right, #e2f0ff, #f7f7f2);
+  color: var(--fg);
+  font-family: "Space Grotesk", "IBM Plex Sans", ui-sans-serif, system-ui;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.button {
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 600;
+}
