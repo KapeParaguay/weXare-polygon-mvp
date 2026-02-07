@@ -11,6 +11,7 @@ def test_balance_available_locked_pending(client, db_session):
     r = client.get("/wallet/balance")
     assert r.status_code == 200
     data = r.json()
-    assert data["available"] == 60
-    assert data["locked"] == 40
-    assert data["pending"] == 0
+    assert data["available_usdc"] == 60
+    assert data["locked_usdc"] == 40
+    assert data["pending_withdrawals_usdc"] == 0
+    assert data["total_usdc"] == 100

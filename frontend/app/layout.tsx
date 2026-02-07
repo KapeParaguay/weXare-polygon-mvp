@@ -1,6 +1,9 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import QueryProvider from "../components/QueryProvider";
+import I18nProvider from "../components/I18nProvider";
+import NavBar from "../components/NavBar";
+import PrivyProviderWrapper from "../components/PrivyProvider";
 
 export const metadata = {
   title: "WEXARE MVP",
@@ -9,21 +12,19 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="en">
       <body>
-        <div className="max-w-5xl mx-auto p-6">
-          <header className="flex items-center justify-between mb-8">
-            <div className="text-2xl font-bold">WEXARE</div>
-            <nav className="flex gap-4 text-sm">
-              <a href="/creator">Creator</a>
-              <a href="/worker">Worker</a>
-              <a href="/judge">Judge</a>
-              <a href="/creator/fund">Fondear</a>
-              <a href="/wallet/withdraw">Retirar</a>
-            </nav>
-          </header>
-          <QueryProvider>{children}</QueryProvider>
-        </div>
+        <PrivyProviderWrapper>
+          <I18nProvider>
+            <div className="max-w-5xl mx-auto p-6">
+              <header className="flex items-center justify-between mb-8">
+                <div className="text-2xl font-bold">WEXARE</div>
+                <NavBar />
+              </header>
+              <QueryProvider>{children}</QueryProvider>
+            </div>
+          </I18nProvider>
+        </PrivyProviderWrapper>
       </body>
     </html>
   );

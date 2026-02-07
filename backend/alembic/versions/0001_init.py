@@ -140,6 +140,16 @@ def upgrade():
         sa.Column("created_at", sa.DateTime()),
     )
     op.create_table(
+        "deposits",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("user_id", sa.String(), index=True),
+        sa.Column("amount_usd", sa.Float()),
+        sa.Column("status", sa.String()),
+        sa.Column("provider", sa.String()),
+        sa.Column("provider_session_id", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime()),
+    )
+    op.create_table(
         "withdrawals",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("user_id", sa.String(), index=True),
@@ -147,8 +157,12 @@ def upgrade():
         sa.Column("method", sa.String()),
         sa.Column("destination", sa.String(), nullable=True),
         sa.Column("country", sa.String(), nullable=True),
+        sa.Column("gross_usdc", sa.Float(), nullable=True),
+        sa.Column("estimated_fee_usd", sa.Float(), nullable=True),
+        sa.Column("estimated_net_usd", sa.Float(), nullable=True),
         sa.Column("status", sa.String()),
-        sa.Column("coop_tx", sa.String(), nullable=True),
+        sa.Column("tx_hash", sa.String(), nullable=True),
+        sa.Column("provider_session_id", sa.String(), nullable=True),
         sa.Column("created_at", sa.DateTime()),
     )
     op.create_table(
@@ -221,6 +235,7 @@ def downgrade():
     op.drop_table("reputation_logs")
     op.drop_table("experience_records")
     op.drop_table("withdrawals")
+    op.drop_table("deposits")
     op.drop_table("payments")
     op.drop_table("quests")
     op.drop_table("proposals")

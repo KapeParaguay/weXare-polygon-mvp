@@ -1,4 +1,4 @@
 # WITHDRAWALS
 
 Withdrawals are off-chain.
-For MVP, payouts go to a fixed cooperative wallet.
+Default off-ramp is MoonPay. Advanced users can withdraw USDC to an external wallet.

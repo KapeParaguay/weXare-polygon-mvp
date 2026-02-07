@@ -8,3 +8,6 @@ out
 coverage
 venv
 .venv
+.DS_Store
+protocol/cache
+protocol/broadcast

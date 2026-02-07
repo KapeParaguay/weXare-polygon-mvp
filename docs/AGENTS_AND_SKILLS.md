@@ -25,6 +25,7 @@ They may run as separate services or as modules within the backend.
 
 The Planner Agent:
 - receives a high-level goal from the creator,
+- uses an LLM provider with fallback (OpenAI → OpenRouter),
 - generates a tree of Quests (parent, children, deeper levels),
 - assigns each Quest an execution type:
   - `AUTO` or `HUMAN`,

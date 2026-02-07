@@ -45,7 +45,6 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = _get_db
     app.dependency_overrides[get_current_user] = _get_user
-    settings.cooperative_withdrawal_address = "0xcoop"
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

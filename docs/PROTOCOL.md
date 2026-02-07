@@ -9,7 +9,7 @@ Guarantee on‑chain:
 - No double execution, no reentrancy, no invalid states
 - Full events for audit/indexing
 
-Everything else stays off‑chain (backend + Privy + cooperative).
+Everything else stays off‑chain (backend + Privy + off‑ramps).
 
 ## 1) MVP Decisions
 - Chain: Polygon

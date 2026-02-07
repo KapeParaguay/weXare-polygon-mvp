@@ -18,5 +18,6 @@ High-level architecture for the WEXARE MVP.
 
 ## Separation of Concerns
 - Protocol: escrow + disputes only.
-- Backend: orchestration, wallets, evidence, reputation.
+- Backend: orchestration, wallets, evidence, reputation, LLM provider abstraction.
+- Background polling (indexer) runs inside the backend process (no separate worker infra).
 - Frontend: Web2 UX.

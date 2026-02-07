@@ -17,5 +17,6 @@ from app.models.withdrawal import Withdrawal
 from app.models.experience_record import ExperienceRecord
 from app.models.reputation_log import ReputationLog
 from app.models.indexer_state import IndexerState
+from app.models.deposit import Deposit
 from app.models.task_offer import TaskOffer
 from app.models.skill_run import SkillRun

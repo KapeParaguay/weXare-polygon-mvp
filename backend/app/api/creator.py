@@ -38,27 +38,47 @@ def generate_proposal(project_id: int, db: Session = Depends(get_db), user=Depen
     project = db.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    # MVP: create a single quest proposal with buffer
-    pricing = compute_pricing(worker_cost=1000, buffer_pct=20.0, moonpay_fee_pct=6.0)
-    proposal_data = {
-        "quests": [
-            {
-                "index": 1,
-                "title": "Quest 1",
-                "scope": "Definir alcance MVP",
-                "budget": pricing.estimated_worker_cost,
-                "buffer_pct": pricing.buffer_pct,
-                "moonpay_fee_pct": pricing.moonpay_fee_pct,
-                "price_to_creator": pricing.price_to_creator
-            }
-        ],
-        "budget": pricing.estimated_worker_cost,
-        "buffer_pct": pricing.buffer_pct,
-        "moonpay_fee_pct": pricing.moonpay_fee_pct,
-        "price_to_creator": pricing.price_to_creator,
-        "assumptions": [],
-        "questions": [],
-    }
+    pricing = compute_pricing(worker_cost=1000, buffer_pct=20.0)
+    proposal_data = None
+    try:
+        from app.llm.selector import LLMSelector
+        llm = LLMSelector().get()
+        if llm:
+            import json
+            prompt = (
+                "Generate a minimal quest plan as JSON for the following project goal. "
+                "Return a JSON object with fields: quests[], budget, buffer_pct, moonpay_fee_pct, price_to_creator, assumptions, questions. "
+                "Each quest should include index, title, scope, budget, execution_type (AUTO/HUMAN), acceptance_criteria.\n\n"
+                f"Goal: {project.description or project.title}"
+            )
+            raw = llm.generate(prompt).text
+            parsed = json.loads(raw)
+            proposal_data = parsed
+    except Exception:
+        proposal_data = None
+
+    if not proposal_data:
+        proposal_data = {
+            "quests": [
+                {
+                    "index": 1,
+                    "title": "Quest 1",
+                    "scope": "Define MVP scope",
+                    "budget": pricing.estimated_worker_cost,
+                    "execution_type": "HUMAN",
+                    "acceptance_criteria": ["Scope defined and approved"],
+                    "buffer_pct": pricing.buffer_pct,
+                    "moonpay_fee_pct": pricing.moonpay_fee_pct,
+                    "price_to_creator": pricing.price_to_creator,
+                }
+            ],
+            "budget": pricing.estimated_worker_cost,
+            "buffer_pct": pricing.buffer_pct,
+            "moonpay_fee_pct": pricing.moonpay_fee_pct,
+            "price_to_creator": pricing.price_to_creator,
+            "assumptions": [],
+            "questions": [],
+        }
     proposal = Proposal(project_id=project_id, version=1, locked=False, data={
         **proposal_data
     })
@@ -100,7 +120,7 @@ def initiate_payment(payload: PaymentInit, db: Session = Depends(get_db), user=D
     payment = Payment(creator_id=user["id"], quest_id=payload.quest_id, amount=payload.amount, fee=payload.amount * 0.06, status="INITIATED", created_at=datetime.utcnow())
     db.add(payment)
     db.commit()
-    provider = initiate_onramp(payload.amount)
+    provider = initiate_onramp(payload.amount, payment.id)
     return {"status": "ok", "payment_id": payment.id, "provider": provider["provider"], "fee": payment.fee}
 
 

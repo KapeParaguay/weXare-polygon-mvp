@@ -77,13 +77,21 @@ Polygon is used **only** for the MVP due to iteration speed, mature tooling, and
 - Custodial wallets (Privy)
 - Platform pays gas
 - Users see: “Available funds”, “Fund quest”, “Approve”, “Dispute”, “Vote”
+- Frontend i18n: English + Spanish with browser detection
+
+## Auth (Privy)
+This MVP uses **Privy as the only auth provider** (email magic link).
+- Frontend uses `NEXT_PUBLIC_PRIVY_APP_ID`
+- Backend verifies the Privy access token with `PRIVY_VERIFICATION_KEY`
+- For local dev, `AUTH_ALLOW_MOCK=true` allows `Authorization: Bearer mock`
 
 ## Stablecoin
 - **USDC on Polygon** (single currency for MVP)
 
 ## Withdrawals
-- **Enabled** but **only to a verified cooperative wallet**
-- Cooperative pays users via bank off-chain
+- **Default**: MoonPay off‑ramp
+- **Advanced**: withdraw USDC to an external wallet
+- External services (e.g. El Dorado) can be used **after** withdrawing to your own wallet
 
 ## On‑ramp (MVP)
 - MoonPay for creators
@@ -95,6 +103,41 @@ Polygon is used **only** for the MVP due to iteration speed, mature tooling, and
 - `backend/` FastAPI + SQLAlchemy + Alembic
 - `protocol/` Solidity + Foundry
 - `infra/` Docker Compose
+
+## Deployment modes
+### 1) Platform only (no protocol)
+Use this for UX demos or product validation without blockchain.
+
+Requirements:
+- Backend + Frontend only
+- `sign_and_send_tx` remains a stub
+- No external worker/indexer needed (polling runs in-process if configured)
+
+Steps:
+1. Configure backend env (no contract addresses required).
+2. Start backend + frontend.
+3. Use stubbed flows (fund/approve/dispute will not hit chain).
+
+### 2) Protocol only
+Use this to validate contracts and escrow/disputes without the platform.
+
+Steps:
+1. Deploy contracts with Foundry.
+2. Run `forge test` and fork tests.
+3. Optional: verify in testnet.
+
+### 3) Platform + Protocol (full MVP)
+Use this for full end‑to‑end validation with guarantees.
+
+Requirements:
+- Backend + Frontend + Protocol deployed
+- Indexer running
+- Contract addresses set in env
+
+Steps:
+1. Deploy contracts.
+2. Set `ESCROW_MANAGER_ADDRESS`, `DISPUTE_MANAGER_ADDRESS`, `USDC_TOKEN_ADDRESS`.
+3. Run backend + indexer + frontend.
 
 ## Protocol (MVP)
 - USDC escrow per Quest (quest tree: parent/child)
@@ -142,16 +185,29 @@ Backend (`backend/.env`)
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PRIVY_APP_ID`
 - `PRIVY_APP_SECRET`
+- `PRIVY_VERIFICATION_KEY`
+- `PRIVY_ISSUER` (optional)
+- `AUTH_ALLOW_MOCK` (true/false)
+- `MOONPAY_ENABLED`
+- `WITHDRAW_EXTERNAL_ENABLED`
+- `DEFAULT_WITHDRAW_METHOD`
+- `MOONPAY_FEE_BUFFER_PCT`
+- `MOONPAY_FEE_BUFFER_MIN_USD`
 - `USDC_TOKEN_ADDRESS`
 - `ESCROW_MANAGER_ADDRESS`
 - `DISPUTE_MANAGER_ADDRESS`
-- `COOPERATIVE_WITHDRAWAL_ADDRESS`
 - `RPC_URL`
 - `INDEXER_POLL_SEC`
 - `INDEXER_START_BLOCK`
+- `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY`
+- `LLM_PROVIDER_PRIORITY`
+- `LLM_MODEL_OPENAI`
+- `LLM_MODEL_OPENROUTER`
 
 Frontend (`frontend/.env.local`)
 - `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_PRIVY_APP_ID`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -206,11 +262,11 @@ RUN_E2E=1 pytest -q tests/test_e2e_flow.py
 2. Secrets in vault/KMS (no `.env` in prod).
 3. Deploy backend + background workers.
 4. Configure `RPC_URL`, `USDC_TOKEN_ADDRESS`, `ESCROW_MANAGER_ADDRESS`, `DISPUTE_MANAGER_ADDRESS`.
-5. Set `COOPERATIVE_WITHDRAWAL_ADDRESS` (fixed wallet).
+5. Configure MoonPay on/off‑ramp keys and webhooks.
 6. Enable Supabase Auth (magic link) and replace auth stub.
 7. Configure domains + CORS.
 8. Run migrations: `alembic upgrade head`.
-9. Run indexer as a service and monitor it.
+9. Indexer runs inside the backend process (no Redis/queue services required).
 10. Centralized logs and alerts.
 
 ## Protocol testing
@@ -224,19 +280,15 @@ RUN_E2E=1 pytest -q tests/test_e2e_flow.py
    - `source .env`
    - `FOUNDRY_DISABLE_SIGS=1 forge script script/Deploy.s.sol --rpc-url $AMOY_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast`
 
-## Indexer guide
-Run:
-```bash
-cd backend
-python -m app.workers.indexer
-```
+## Indexer (in-process)
+The indexer runs inside the backend process using polling.
 
 Key envs: `RPC_URL`, `ESCROW_MANAGER_ADDRESS`, `DISPUTE_MANAGER_ADDRESS`, `INDEXER_POLL_SEC`, `INDEXER_START_BLOCK`.
 
 Backfill:
 - Set `INDEXER_START_BLOCK` to a prior block.
 - Reset `indexer_state.last_block`.
-- Restart the indexer.
+- Restart the backend.
 
 ## Pending for production
 1. **Auth real** (Supabase magic link)

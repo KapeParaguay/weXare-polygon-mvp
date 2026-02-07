@@ -2,8 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("withdraw page renders methods", async ({ page }) => {
   await page.goto("/wallet/withdraw");
-  await expect(page.getByText("Retirar fondos")).toBeVisible();
-  await expect(page.getByText("Transferencia bancaria")).toBeVisible();
-  await expect(page.getByText("USDC (wallet externa)")).toBeVisible();
-  await expect(page.getByText("MoonPay")).toBeVisible();
+  await expect(page.getByText("Withdraw funds")).toBeVisible();
+  await expect(page.getByText("USDC (external wallet)")).toBeVisible();
+  await expect(page.getByText("MoonPay (recommended)")).toBeVisible();
 });

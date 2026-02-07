@@ -123,6 +123,16 @@ CREATE TABLE payments (
   created_at TIMESTAMP
 );
 
+CREATE TABLE deposits (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT,
+  amount_usd FLOAT,
+  status TEXT,
+  provider TEXT,
+  provider_session_id TEXT,
+  created_at TIMESTAMP
+);
+
 CREATE TABLE withdrawals (
   id SERIAL PRIMARY KEY,
   user_id TEXT,
@@ -130,8 +140,12 @@ CREATE TABLE withdrawals (
   method TEXT,
   destination TEXT,
   country TEXT,
+  gross_usdc FLOAT,
+  estimated_fee_usd FLOAT,
+  estimated_net_usd FLOAT,
   status TEXT,
-  coop_tx TEXT,
+  tx_hash TEXT,
+  provider_session_id TEXT,
   created_at TIMESTAMP
 );
 

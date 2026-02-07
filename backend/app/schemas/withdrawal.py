@@ -1,13 +1,15 @@
 from pydantic import BaseModel
 
 
-class WithdrawalRequest(BaseModel):
-    amount: float
-    method: str
-    destination: str | None = None
-    country: str | None = None
+class MoonpayWithdrawRequest(BaseModel):
+    amount_usdc: float
+
+
+class ExternalWithdrawRequest(BaseModel):
+    amount_usdc: float
+    destination: str
 
 
 class WithdrawalUpdate(BaseModel):
     status: str
-    coop_tx: str | None = None
+    tx_hash: str | None = None
