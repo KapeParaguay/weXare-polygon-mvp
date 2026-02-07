@@ -19,7 +19,7 @@ export default function CreatorProject() {
         <p className="text-sm text-slate-600">Timeline de quests.</p>
         <div className="mt-4 flex gap-2">
           <button className="button">Financiar quest</button>
-          <a className="underline" href="./proposal">Ver propuesta</a>
+          <a className="underline" href={`/creator/projects/${params.id}/proposal`}>Ver propuesta</a>
         </div>
         <div className="mt-4 p-3 border rounded bg-amber-50 text-sm">
           <strong>Scope Freeze:</strong> el alcance del quest es inmutable luego de financiar.

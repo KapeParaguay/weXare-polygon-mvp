@@ -7,12 +7,29 @@ import { api } from "../../../../../lib/api";
 export default function CreatorProposal() {
   const params = useParams<{ id: string }>();
   const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     api(`/projects/${params.id}`).then(setData).catch(() => null);
   }, [params.id]);
 
   const proposal = data?.proposals?.[0];
+
+  const handleApprove = async () => {
+    if (!proposal) return;
+    setLoading(true);
+    try {
+      await api(`/projects/${params.id}/proposals/${proposal.id}/approve`, { method: "POST" });
+      // Refresh data after approval
+      const updated = await api(`/projects/${params.id}`);
+      setData(updated);
+      alert("Propuesta aprobada");
+    } catch (e) {
+      alert("Error al aprobar propuesta");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="card">
@@ -33,11 +50,22 @@ export default function CreatorProposal() {
               ))}
             </div>
           )}
+          {proposal.locked && (
+            <div className="mt-2 text-green-600 font-semibold">✓ Propuesta aprobada</div>
+          )}
         </div>
       )}
       <div className="mt-4 flex gap-2">
-        <button className="button">Aprobar propuesta</button>
-        <button className="border rounded px-3 py-2">Solicitar cambios</button>
+        <button
+          className="button"
+          onClick={handleApprove}
+          disabled={loading || proposal?.locked}
+        >
+          {loading ? "Aprobando..." : proposal?.locked ? "Aprobada" : "Aprobar propuesta"}
+        </button>
+        <button className="border rounded px-3 py-2" disabled={proposal?.locked}>
+          Solicitar cambios
+        </button>
       </div>
     </div>
   );
