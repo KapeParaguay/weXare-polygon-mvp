@@ -109,18 +109,26 @@ Polygon is used **only** for the MVP due to iteration speed, mature tooling, and
 See `docs/AGENTS.md`, `docs/AGENTS_AND_SKILLS.md`, and `docs/ARCHITECTURE.md`.
 
 ## Commands
-- `make dev`
-- `make test`
-- `make deploy`
+- `make dev` — Start full stack with Docker Compose
+- `make test` — Run all test suites
+- `make deploy` — Deploy contracts
 
-## Install dependencies (first time)
-Frontend:
+## Running Locally
+
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL (or use Docker)
+
+### 1. Install dependencies
+
+**Frontend:**
 ```bash
 cd frontend
 npm install
 ```
 
-Backend:
+**Backend:**
 ```bash
 cd backend
 python3 -m venv .venv
@@ -128,39 +136,107 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Protocol:
+**Protocol (optional):**
 ```bash
 cd protocol
 forge install
 ```
 
-## Environment variables (minimum)
-Backend (`backend/.env`)
-- `DATABASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `PRIVY_APP_ID`
-- `PRIVY_APP_SECRET`
-- `USDC_TOKEN_ADDRESS`
-- `ESCROW_MANAGER_ADDRESS`
-- `DISPUTE_MANAGER_ADDRESS`
-- `COOPERATIVE_WITHDRAWAL_ADDRESS`
-- `RPC_URL`
-- `INDEXER_POLL_SEC`
-- `INDEXER_START_BLOCK`
+### 2. Set up environment variables
 
-Frontend (`frontend/.env.local`)
-- `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+**Backend** — Create `backend/.env`:
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/wexare
+```
 
-Protocol (`protocol/.env`)
-- `AMOY_RPC_URL`
-- `DEPLOYER_PRIVATE_KEY`
-- `ADMIN_ADDRESS`
-- `USDC_ADDRESS`
-- `COOP_WALLET_ADDRESS`
+**Frontend** — Create `frontend/.env`:
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### 3. Start PostgreSQL
+
+Using Docker:
+```bash
+docker run -d --name wexare-db -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=wexare postgres:15
+```
+
+Or use your local PostgreSQL installation.
+
+### 4. Run database migrations
+
+```bash
+cd backend
+source .venv/bin/activate
+alembic upgrade head
+```
+
+### 5. Start the backend
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The API will be available at `http://localhost:8000`.
+
+### 6. Start the frontend
+
+In a new terminal:
+```bash
+cd frontend
+npm run dev
+```
+
+The app will be available at `http://localhost:3000`.
+
+### 7. Test the flow
+
+1. Go to `http://localhost:3000/creator/new`
+2. Create a project with title and description
+3. Click "Generar propuesta" — redirects to project page
+4. Click "Financiar quest" — go to fund page
+5. Click "Iniciar fondeo" then "Simular USDC" to mock payment
+
+> **Note:** Auth is stubbed — all requests use a hardcoded user. MoonPay and Privy are also stubbed.
+
+## Environment variables (full list)
+
+These are needed for production or full integration testing. For local dev, only `DATABASE_URL` and `NEXT_PUBLIC_API_URL` are required.
+
+**Backend** (`backend/.env`):
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `RPC_URL` | For blockchain | Polygon RPC endpoint |
+| `USDC_TOKEN_ADDRESS` | For blockchain | USDC contract address |
+| `ESCROW_MANAGER_ADDRESS` | For blockchain | Escrow contract address |
+| `DISPUTE_MANAGER_ADDRESS` | For blockchain | Dispute contract address |
+| `COOPERATIVE_WITHDRAWAL_ADDRESS` | For withdrawals | Coop wallet address |
+| `SUPABASE_URL` | For auth | Supabase project URL |
+| `SUPABASE_ANON_KEY` | For auth | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | For auth | Supabase service role key |
+| `PRIVY_APP_ID` | For wallets | Privy app ID |
+| `PRIVY_APP_SECRET` | For wallets | Privy app secret |
+| `INDEXER_POLL_SEC` | For indexer | Polling interval (default: 5) |
+| `INDEXER_START_BLOCK` | For indexer | Starting block number |
+
+**Frontend** (`frontend/.env`):
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API URL (e.g., `http://localhost:8000`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | For auth | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | For auth | Supabase anon key |
+
+**Protocol** (`protocol/.env`):
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AMOY_RPC_URL` | For deploy | Polygon Amoy testnet RPC |
+| `DEPLOYER_PRIVATE_KEY` | For deploy | Deployer wallet private key |
+| `ADMIN_ADDRESS` | For deploy | Admin wallet address |
+| `USDC_ADDRESS` | For deploy | USDC token address |
+| `COOP_WALLET_ADDRESS` | For deploy | Cooperative wallet address |
 
 ## End‑to‑end local MVP (quick test)
 1. Start local stack: `make dev`.

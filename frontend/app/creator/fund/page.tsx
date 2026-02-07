@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { api } from "../../../lib/api";
+
+interface Quest {
+  id: number;
+  index: number;
+  status: string;
+  budget: number;
+}
 
 const STATUS_COPY: Record<string, string> = {
   INITIATED: "Pago iniciado. Esperando confirmación.",
@@ -11,19 +19,62 @@ const STATUS_COPY: Record<string, string> = {
 };
 
 export default function CreatorFund() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId");
+
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [questId, setQuestId] = useState("");
   const [amount, setAmount] = useState("");
+
+  useEffect(() => {
+    if (projectId) {
+      api(`/projects/${projectId}`)
+        .then((data: any) => {
+          if (data?.quests) {
+            setQuests(data.quests);
+            if (data.quests.length > 0) {
+              const firstQuest = data.quests[0];
+              setQuestId(String(firstQuest.id));
+              setAmount(String(firstQuest.budget));
+            }
+          }
+        })
+        .catch(() => null);
+    }
+  }, [projectId]);
+
+  const handleQuestChange = (id: string) => {
+    setQuestId(id);
+    const quest = quests.find((q) => String(q.id) === id);
+    if (quest) {
+      setAmount(String(quest.budget));
+    }
+  };
   const [paymentId, setPaymentId] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    const res: any = await api(`/payments/initiate`, {
-      method: "POST",
-      body: JSON.stringify({ quest_id: Number(questId), amount: Number(amount) })
-    });
-    setPaymentId(res.payment_id);
-    setStatus("INITIATED");
-    alert(`Pago iniciado. Fee estimada: ${res.fee}`);
+    if (!questId || !amount) {
+      setError("Quest ID y monto son requeridos");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res: any = await api(`/payments/initiate`, {
+        method: "POST",
+        body: JSON.stringify({ quest_id: Number(questId), amount: Number(amount) })
+      });
+      setPaymentId(res.payment_id);
+      setStatus("INITIATED");
+      alert(`Pago iniciado. Fee estimada: ${res.fee}`);
+    } catch (err: any) {
+      setError(err.message || "Error al iniciar pago");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const setMockStatus = async (next: string) => {
@@ -41,10 +92,27 @@ export default function CreatorFund() {
       <p className="text-sm text-slate-600">Compra USDC para financiar quests.</p>
 
       <div className="mt-4 grid gap-3">
-        <input className="border rounded px-3 py-2" placeholder="Quest ID" value={questId} onChange={(e) => setQuestId(e.target.value)} />
+        {quests.length > 0 ? (
+          <select
+            className="border rounded px-3 py-2"
+            value={questId}
+            onChange={(e) => handleQuestChange(e.target.value)}
+          >
+            {quests.map((q) => (
+              <option key={q.id} value={q.id}>
+                Quest #{q.index} — {q.status} — ${q.budget}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input className="border rounded px-3 py-2" placeholder="Quest ID" value={questId} onChange={(e) => setQuestId(e.target.value)} />
+        )}
         <input className="border rounded px-3 py-2" placeholder="Monto" value={amount} onChange={(e) => setAmount(e.target.value)} />
         <p className="text-xs text-amber-700">MoonPay puede cobrar comisiones altas en montos pequeños.</p>
-        <button className="button" onClick={submit}>Iniciar fondeo</button>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <button className="button" onClick={submit} disabled={loading}>
+          {loading ? "Iniciando..." : "Iniciar fondeo"}
+        </button>
       </div>
 
       <div className="mt-6 text-sm">
