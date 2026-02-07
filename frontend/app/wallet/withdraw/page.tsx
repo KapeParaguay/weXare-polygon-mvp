@@ -50,16 +50,16 @@ export default function WithdrawPage() {
       <p className="text-sm text-slate-600">{t("withdraw_subtitle")}</p>
       {balance && (
         <div className="mt-2 text-sm">
-          Disponible: <strong>{balance.available_usdc}</strong> USDC
+          Disponible: <strong>{balance.available_usdc}</strong> USD
         </div>
       )}
 
       <div className="mt-4 grid gap-3">
-        <label className="text-sm">{t("withdraw_amount")}</label>
-        <input className="border rounded px-3 py-2" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" />
+        <label className="text-sm" htmlFor="withdraw_amount">{t("withdraw_amount")}</label>
+        <input id="withdraw_amount" className="border rounded px-3 py-2" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" />
 
-        <label className="text-sm">{t("withdraw_method")}</label>
-        <select className="border rounded px-3 py-2" value={method} onChange={(e) => setMethod(e.target.value)}>
+        <label className="text-sm" htmlFor="withdraw_method">{t("withdraw_method")}</label>
+        <select id="withdraw_method" className="border rounded px-3 py-2" value={method} onChange={(e) => setMethod(e.target.value)}>
           <option value="moonpay">{t("withdraw_moonpay")}</option>
           <option value="external">{t("withdraw_external")}</option>
         </select>

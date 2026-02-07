@@ -47,3 +47,7 @@ def record_refund(db: Session, quest_id: int, user_id: str, amount: float, tx_ha
 
 def record_split(db: Session, quest_id: int, user_id: str, amount: float, tx_hash: str | None = None) -> LedgerEntry:
     return _record(db, quest_id=quest_id, user_id=user_id, amount=amount, kind="SPLIT", status="AVAILABLE", tx_hash=tx_hash)
+
+
+def record_fee(db: Session, quest_id: int, user_id: str, amount: float, tx_hash: str | None = None) -> LedgerEntry:
+    return _record(db, quest_id=quest_id, user_id=user_id, amount=amount, kind="FEE", status="AVAILABLE", tx_hash=tx_hash)

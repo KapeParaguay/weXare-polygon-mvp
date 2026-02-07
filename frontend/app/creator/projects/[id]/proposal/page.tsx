@@ -15,6 +15,12 @@ export default function CreatorProposal() {
   }, [params.id]);
 
   const proposal = data?.proposals?.[0];
+  const approve = async () => {
+    if (!proposal?.id) return;
+    await api(`/projects/${params.id}/proposals/${proposal.id}/approve`, { method: "POST" });
+    const updated = await api(`/projects/${params.id}`);
+    setData(updated);
+  };
 
   return (
     <div className="card">
@@ -38,7 +44,7 @@ export default function CreatorProposal() {
         </div>
       )}
       <div className="mt-4 flex gap-2">
-        <button className="button">{t("proposal_approve")}</button>
+        <button className="button" onClick={approve}>{t("proposal_approve")}</button>
         <button className="border rounded px-3 py-2">{t("proposal_changes")}</button>
       </div>
     </div>

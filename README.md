@@ -139,6 +139,140 @@ Steps:
 2. Set `ESCROW_MANAGER_ADDRESS`, `DISPUTE_MANAGER_ADDRESS`, `USDC_TOKEN_ADDRESS`.
 3. Run backend + indexer + frontend.
 
+## Production deployment (exhaustive)
+This section is required for real production. It is not optional.
+
+### A) What depends on the deploy (must be done)
+- Real environment variables (Privy, MoonPay, DB, RPC).
+- `OPERATOR_ROLE` on‑chain (Escrow + Dispute managers).
+- Gas funds (MATIC) and USDC in the **operator wallet**.
+- Public MoonPay webhook configured.
+
+None of the steps below require changing the protocol. They are operational tasks only.
+
+### B) Required environment variables (production)
+Backend (`backend/.env`):
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PRIVY_APP_ID`
+- `PRIVY_APP_SECRET`
+- `PRIVY_VERIFICATION_KEY` (PEM with `\n`)
+- `PRIVY_AUTH_KEY`
+- `PRIVY_WALLET_ID`
+- `PRIVY_WALLET_ADDRESS`
+- `RPC_URL`
+- `CHAIN_ID` (Polygon mainnet = `137`)
+- `USDC_TOKEN_ADDRESS`
+- `ESCROW_MANAGER_ADDRESS`
+- `DISPUTE_MANAGER_ADDRESS`
+- `COOP_WALLET_ADDRESS`
+- `MOONPAY_ENABLED=true`
+- `MOONPAY_WEBHOOK_SECRET`
+- `WITHDRAW_EXTERNAL_ENABLED`
+- `DEFAULT_WITHDRAW_METHOD`
+- `ONCHAIN_NODE_FEE_USD`
+
+Frontend (`frontend/.env.local`):
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_PRIVY_APP_ID`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+How to obtain each value:
+- `DATABASE_URL`: Supabase → Project Settings → Database → Connection string.
+- `SUPABASE_URL`: Supabase → Project Settings → API → Project URL.
+- `SUPABASE_ANON_KEY`: Supabase → Project Settings → API → anon key.
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase → Project Settings → API → service_role key.
+- `PRIVY_APP_ID`: Privy → App settings → Basics → App ID.
+- `PRIVY_APP_SECRET`: Privy → App settings → Basics → App Secret.
+- `PRIVY_VERIFICATION_KEY`: Privy → App settings → Basics → Verification Key. Paste PEM with `\n`.
+- `PRIVY_AUTH_KEY`: Privy → Wallet infrastructure → Authorization keys → Create key.
+- `PRIVY_WALLET_ID`: Privy → Wallet infrastructure → Wallets → Create new wallet.
+- `PRIVY_WALLET_ADDRESS`: Same wallet details page.
+- `RPC_URL`: Polygon RPC provider (public RPC or Alchemy/Infura).
+- `CHAIN_ID`: `137` for Polygon mainnet.
+- `USDC_TOKEN_ADDRESS`: Polygon mainnet USDC: `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`.
+- `ESCROW_MANAGER_ADDRESS` / `DISPUTE_MANAGER_ADDRESS`: your deployed contracts.
+- `COOP_WALLET_ADDRESS`: payout wallet address.
+- `MOONPAY_WEBHOOK_SECRET`: MoonPay dashboard webhook secret.
+- `ONCHAIN_NODE_FEE_USD`: fixed fee per funded quest (recommend `0.25`).
+
+### C) On‑chain roles (mandatory)
+Grant `OPERATOR_ROLE` to the **Privy server wallet** so backend can execute on‑chain txs.
+
+```
+cast send $ESCROW_MANAGER_ADDRESS \
+  "grantRole(bytes32,address)" \
+  $(cast keccak "OPERATOR_ROLE") \
+  $PRIVY_WALLET_ADDRESS \
+  --rpc-url $RPC_URL \
+  --private-key $ADMIN_PRIVATE_KEY
+
+cast send $DISPUTE_MANAGER_ADDRESS \
+  "grantRole(bytes32,address)" \
+  $(cast keccak "OPERATOR_ROLE") \
+  $PRIVY_WALLET_ADDRESS \
+  --rpc-url $RPC_URL \
+  --private-key $ADMIN_PRIVATE_KEY
+```
+
+Verify:
+```
+cast call $ESCROW_MANAGER_ADDRESS \
+  "hasRole(bytes32,address)(bool)" \
+  $(cast keccak "OPERATOR_ROLE") \
+  $PRIVY_WALLET_ADDRESS \
+  --rpc-url $RPC_URL
+
+cast call $DISPUTE_MANAGER_ADDRESS \
+  "hasRole(bytes32,address)(bool)" \
+  $(cast keccak "OPERATOR_ROLE") \
+  $PRIVY_WALLET_ADDRESS \
+  --rpc-url $RPC_URL
+```
+
+### D) Fund the operator wallet (mandatory)
+Send funds to `PRIVY_WALLET_ADDRESS`:
+- **MATIC** for gas
+- **USDC** for escrow
+
+Note: the backend charges a fixed fee per funded quest (`ONCHAIN_NODE_FEE_USD`) to cover gas.
+
+### E) Webhook MoonPay (mandatory for real on‑ramp)
+Configure public webhook to:
+- `POST /webhooks/moonpay`
+- Use `MOONPAY_WEBHOOK_SECRET` for signature verification.
+
+How to configure:
+1. In MoonPay dashboard, create a webhook.
+2. Set target URL: `https://<backend-domain>/webhooks/moonpay`.
+3. Copy the signing secret and set `MOONPAY_WEBHOOK_SECRET` in `backend/.env`.
+4. Send a test event from MoonPay and verify a 200 response.
+
+### F) Migrations and verification
+```
+cd backend
+alembic upgrade head
+```
+Or:
+```
+./scripts/setup-prod.sh
+```
+
+### G) Verify on-chain readiness
+Use:
+```
+./scripts/verify_prod.sh
+```
+This checks RPC, contract bytecode, roles, and balances.
+
+### G) Final checks
+Use:
+- `docs/PROD_CHECKLIST.md`
+- `./scripts/verify_prod.sh`
+
 ## Protocol (MVP)
 - USDC escrow per Quest (quest tree: parent/child)
 - Disputes with 3 judges, majority 2/3 on-chain

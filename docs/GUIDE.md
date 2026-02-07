@@ -5,3 +5,6 @@ Quick start guide:
 2. `make dev`
 3. Open frontend at `http://localhost:3000`
 4. Use API endpoints for funding and disputes
+
+## Guías completas
+- E2E y producción: `docs/E2E_AND_PROD_GUIDE.md`

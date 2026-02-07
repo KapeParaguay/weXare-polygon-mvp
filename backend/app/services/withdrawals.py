@@ -19,5 +19,5 @@ def is_valid_address(address: str) -> bool:
 def get_options(country: str | None = None) -> list[WithdrawalOption]:
     return [
         WithdrawalOption(method="moonpay", eta="variable", fee_pct=3.5, notes="External KYC may apply"),
-        WithdrawalOption(method="external", eta="minutes", fee_pct=0.2, notes="USDC external address"),
+        WithdrawalOption(method="external", eta="minutes", fee_pct=0.2, notes="USD external address"),
     ]

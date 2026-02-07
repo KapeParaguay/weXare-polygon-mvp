@@ -31,18 +31,35 @@ def update_status(payload: StatusUpdate, user=Depends(get_current_user)):
 
 @router.get("/me/wallet")
 def get_wallet(user=Depends(get_current_user), db=Depends(get_db)):
-    wallet_id = create_custodial_wallet(user["id"])
-    wallet_address = get_wallet_address(user["id"])
+    existing = db.get(User, user["id"])
+    if existing and existing.wallet_id and existing.wallet_address:
+        return {"wallet_id": existing.wallet_id, "wallet_address": existing.wallet_address}
+    try:
+        wallet_id, wallet_address = create_custodial_wallet(user["id"])
+    except Exception:
+        wallet_id = existing.wallet_id if existing else None
+        wallet_address = existing.wallet_address if existing else None
+        if not wallet_address:
+            wallet_address = get_wallet_address(user["id"])
     existing = db.get(User, user["id"])
     if not existing:
-        existing = User(id=user["id"], email=user["email"], status=user["status"], roles=user["roles"], wallet_address=wallet_address.lower())
+        existing = User(
+            id=user["id"],
+            email=user["email"],
+            status=user["status"],
+            roles=user["roles"],
+            wallet_id=wallet_id,
+            wallet_address=wallet_address.lower() if wallet_address else None,
+        )
         db.add(existing)
     else:
-        if not existing.wallet_address:
+        if wallet_id and not existing.wallet_id:
+            existing.wallet_id = wallet_id
+        if wallet_address and not existing.wallet_address:
             existing.wallet_address = wallet_address.lower()
             db.add(existing)
     db.commit()
-    return {"wallet_id": wallet_id, "wallet_address": wallet_address}
+    return {"wallet_id": existing.wallet_id, "wallet_address": existing.wallet_address}
 
 
 @router.get("/wallet/balance", response_model=BalanceOut)
@@ -97,6 +114,7 @@ def moonpay_webhook(payload: DepositWebhook, db=Depends(get_db)):
     if deposit.status == "USDC_CONFIRMED":
         from app.services.ledger import record_credit
         record_credit(db, user_id=deposit.user_id, amount=deposit.amount_usd, tx_hash=deposit.provider_session_id or "")
+        db.commit()
     return {"status": "ok"}
 
 

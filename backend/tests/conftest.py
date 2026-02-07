@@ -12,7 +12,7 @@ from app.services.auth import get_current_user
 from app.core.config import settings
 
 # Ensure all models are imported and registered
-import app.models  # noqa: F401
+from app import models as _models  # noqa: F401
 
 
 @pytest.fixture()

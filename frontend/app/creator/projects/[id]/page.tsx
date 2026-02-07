@@ -20,7 +20,7 @@ export default function CreatorProject() {
         <h1 className="text-xl font-semibold mb-2">{t("project_title")}</h1>
         <p className="text-sm text-slate-600">{t("project_timeline")}</p>
         <div className="mt-4 flex gap-2">
-          <button className="button">{t("project_fund")}</button>
+          <a className="button inline-block" href={`/creator/fund?quest_id=${data?.quests?.[0]?.id || ""}`}>{t("project_fund")}</a>
           <a className="underline" href="./proposal">{t("project_view_proposal")}</a>
         </div>
         <div className="mt-4 p-3 border rounded bg-amber-50 text-sm">

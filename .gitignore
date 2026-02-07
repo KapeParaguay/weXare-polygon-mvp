@@ -11,3 +11,6 @@ venv
 .DS_Store
 protocol/cache
 protocol/broadcast
+protocol/lib/forge-std/* 2*
+frontend/test-results
+frontend/playwright-report

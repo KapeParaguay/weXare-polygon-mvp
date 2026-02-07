@@ -19,6 +19,12 @@ def get_balance(db: Session, user_id: str) -> Balance:
             EscrowLedger.kind.in_(["CREDIT", "RELEASE", "REFUND", "SPLIT"]),
         ).all()
     )
+    fees = sum(
+        l.amount for l in db.query(EscrowLedger).filter(
+            EscrowLedger.user_id == user_id,
+            EscrowLedger.kind == "FEE",
+        ).all()
+    )
     locked = sum(
         l.amount for l in db.query(EscrowLedger).filter(
             EscrowLedger.user_id == user_id,
@@ -31,5 +37,5 @@ def get_balance(db: Session, user_id: str) -> Balance:
             Withdrawal.status.in_(["REQUESTED", "PROCESSING", "SENT_ONCHAIN"]),
         ).all()
     )
-    available = max(0.0, credits - locked - pending)
+    available = max(0.0, credits - locked - pending - fees)
     return Balance(available=available, locked=locked, pending=pending)

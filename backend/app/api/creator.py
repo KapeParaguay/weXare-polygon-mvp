@@ -12,8 +12,10 @@ from app.schemas.proposal import ProposalOut
 from app.schemas.quest import QuestFund, QuestAction
 from app.services.auth import get_current_user
 from app.services.judges import create_judge_offers_wave
-from app.services.ledger import record_fund, record_release, record_credit
+from app.services.ledger import record_fund, record_release, record_credit, record_fee
+from app.services.balance import get_balance
 from app.services.privy import sign_and_send_tx
+from app.services.wallets import ensure_user_wallet
 from app.core.config import settings
 from app.models.payment import Payment
 from app.schemas.payment import PaymentInit, PaymentUpdate
@@ -136,6 +138,7 @@ def confirm_payment(payment_id: int, payload: PaymentUpdate, db: Session = Depen
     db.commit()
     if payment.status == "USDC_CONFIRMED" and prev_status != "USDC_CONFIRMED":
         record_credit(db, user_id=payment.creator_id, amount=payment.amount, tx_hash=payment.provider or "")
+        db.commit()
     return {"status": "ok", "payment_id": payment.id, "payment_status": payment.status}
 
 
@@ -150,6 +153,7 @@ def webhook_payment(payment_id: int, payload: PaymentUpdate, db: Session = Depen
     db.commit()
     if payment.status == "USDC_CONFIRMED" and prev_status != "USDC_CONFIRMED":
         record_credit(db, user_id=payment.creator_id, amount=payment.amount, tx_hash=payment.provider or "")
+        db.commit()
     return {"status": "ok"}
 
 
@@ -160,7 +164,7 @@ def fund_quest(quest_id: int, payload: QuestFund, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Quest not found")
     payment = db.query(Payment).filter(Payment.quest_id == quest_id, Payment.creator_id == user["id"]).order_by(Payment.id.desc()).first()
     if not payment or payment.status != "USDC_CONFIRMED":
-        raise HTTPException(status_code=400, detail="USDC not confirmed for funding")
+        raise HTTPException(status_code=400, detail="USD not confirmed for funding")
     try:
         ensure(can_fund(quest.status), "Invalid status for funding")
     except Exception as exc:
@@ -168,13 +172,29 @@ def fund_quest(quest_id: int, payload: QuestFund, db: Session = Depends(get_db),
     # Scope freeze: if scope hash already set, it cannot change on funding
     if quest.scope_hash and quest.scope_hash != payload.scope_hash:
         raise HTTPException(status_code=400, detail="Scope hash immutable after funding")
+    fee = float(settings.onchain_node_fee_usd or 0.0)
+    if fee > 0:
+        bal = get_balance(db, user["id"])
+        required = payload.amount + fee
+        if bal.available < required:
+            raise HTTPException(status_code=400, detail="Insufficient balance for funding + platform fee")
     quest.scope_hash = payload.scope_hash
     quest.budget = payload.amount
     quest.status = "FUNDED"
     quest.funded_at = datetime.utcnow()
     db.add(quest)
     # Custodial on-chain fund (stub)
-    sign_and_send_tx({"action": "fund", "quest_id": quest_id, "amount": payload.amount, "token": "USDC", "execution_type": "HUMAN"})
+    sign_and_send_tx({
+        "action": "fund",
+        "quest_id": quest_id,
+        "parent_quest_id": quest.parent_quest_id or 0,
+        "amount": payload.amount,
+        "scope_hash": payload.scope_hash,
+        "token": "USDC",
+        "execution_type": "HUMAN",
+    })
+    if fee > 0:
+        record_fee(db, quest_id=quest_id, user_id=user["id"], amount=fee)
     record_fund(db, quest_id=quest_id, user_id=user["id"], amount=payload.amount)
     db.add(AuditLog(actor_id=user["id"], action="FUND_QUEST", details=str(payload.model_dump()), created_at=datetime.utcnow()))
     db.commit()
@@ -237,8 +257,15 @@ def dispute_quest(quest_id: int, payload: QuestAction, db: Session = Depends(get
     db.add(dispute)
     quest.status = "DISPUTE"
     db.add(quest)
-    sign_and_send_tx({"action": "open_dispute", "quest_id": quest_id, "evidence": payload.evidence_url})
+    sign_and_send_tx({"action": "open_dispute", "quest_id": quest_id, "dispute_id": dispute.id, "evidence": payload.evidence_url})
     db.add(AuditLog(actor_id=user["id"], action="OPEN_DISPUTE_QUEST", details=str(payload.model_dump()), created_at=datetime.utcnow()))
     db.commit()
-    create_judge_offers_wave(db, dispute.id)
+    offers = create_judge_offers_wave(db, dispute.id)
+    judges = []
+    for offer in offers:
+        wallet_id, wallet_address = ensure_user_wallet(db, offer.judge_user_id)
+        if wallet_address:
+            judges.append(wallet_address)
+    if len(judges) >= 3:
+        sign_and_send_tx({"action": "assign_judges", "dispute_id": dispute.id, "judges": judges[:3]})
     return {"status": "ok", "dispute_id": dispute.id}

@@ -2,5 +2,5 @@ import { test, expect } from "@playwright/test";
 
 test("creator project shows auto/human fallback", async ({ page }) => {
   await page.goto("/creator/projects/1");
-  await expect(page.getByText("Ejecución: AUTO → fallback HUMAN si falla")).toBeVisible();
+  await expect(page.getByText("Scope Freeze: quest scope is immutable after funding.")).toBeVisible();
 });

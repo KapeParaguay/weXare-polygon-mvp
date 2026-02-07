@@ -2,11 +2,11 @@ import { test, expect } from "@playwright/test";
 
 test("creator flow pages", async ({ page }) => {
   await page.goto("/creator");
-  await expect(page.getByText("Projects")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Projects|Proyectos/ })).toBeVisible();
   await page.goto("/creator/new");
-  await expect(page.getByText("Create project")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Create project|Crear proyecto/ })).toBeVisible();
   await page.goto("/creator/quests/1/review");
-  await expect(page.getByText("Quest review")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Quest review|Revisión de quest/ })).toBeVisible();
 });
 
 test("worker flow pages", async ({ page }) => {

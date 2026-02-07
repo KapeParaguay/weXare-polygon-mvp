@@ -2,12 +2,13 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  webServer: {
-    command: "npm run dev -- --port 3000",
-    url: "http://localhost:3000",
-    reuseExistingServer: true
-  },
   use: {
-    baseURL: "http://localhost:3000"
-  }
+    baseURL: "http://127.0.0.1:3001"
+  },
+  projects: [
+    {
+      name: "webkit",
+      use: { browserName: "webkit" }
+    }
+  ]
 });

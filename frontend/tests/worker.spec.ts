@@ -2,5 +2,5 @@ import { test, expect } from "@playwright/test";
 
 test("worker page shows reputation", async ({ page }) => {
   await page.goto("/worker");
-  await expect(page.getByText("Reputation")).toBeVisible();
+  await expect(page.getByText("Reputation", { exact: true })).toBeVisible();
 });

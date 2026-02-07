@@ -13,6 +13,7 @@ export default function WorkerHome() {
   const { t } = useTranslation();
   const [rep, setRep] = useState<Reputation | null>(null);
   const [repError, setRepError] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,13 +33,20 @@ export default function WorkerHome() {
     };
   }, []);
 
+  useEffect(() => {
+    api(`/wallet/balance`)
+      .then((r: any) => setBalance(r.available_usdc ?? 0))
+      .catch(() => setBalance(0));
+  }, []);
+
   return (
     <div className="grid gap-4">
       <div className="card">
         <h1 className="text-xl font-semibold mb-2">{t("worker_summary")}</h1>
         <p className="text-sm text-slate-600">{t("worker_active_task")}</p>
         <div className="mt-3 text-sm">
-          <span className="font-semibold">{t("available_funds")}</span> $0.00
+          <span className="font-semibold">{t("available_funds")}</span>{" "}
+          {balance === null ? t("balance_loading") : `$${balance.toFixed(2)}`}
         </div>
         <div className="mt-4 flex gap-2">
           <a className="button" href="/worker/feed">Ir al feed</a>

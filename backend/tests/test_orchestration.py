@@ -2,6 +2,7 @@ from datetime import datetime
 from app.services.orchestration import issue_wave
 from app.models.worker_profile import WorkerProfile
 from app.models.user import User
+from app.models.experience_record import ExperienceRecord
 
 
 class DummyQuery:
@@ -27,6 +28,8 @@ class DummyDB:
         self.added = []
 
     def query(self, *args, **kwargs):
+        if args and args[0] == ExperienceRecord:
+            return DummyQuery([])
         return DummyQuery(self._rows)
 
     def add(self, obj):

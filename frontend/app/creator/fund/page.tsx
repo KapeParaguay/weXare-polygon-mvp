@@ -1,15 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { api } from "../../../lib/api";
 
 export default function CreatorFund() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [questId, setQuestId] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentId, setPaymentId] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [fee, setFee] = useState<number | null>(null);
+
+  useEffect(() => {
+    const qid = searchParams.get("quest_id");
+    if (qid) setQuestId(qid);
+  }, [searchParams]);
+
+  useEffect(() => {
+    api("/config")
+      .then((res: any) => {
+        if (typeof res?.onchain_node_fee_usd === "number") {
+          setFee(res.onchain_node_fee_usd);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   const submit = async () => {
     const res: any = await api(`/payments/initiate`, {
@@ -34,6 +52,9 @@ export default function CreatorFund() {
     <div className="card">
       <h1 className="text-xl font-semibold mb-2">{t("creator_fund_title")}</h1>
       <p className="text-sm text-slate-600">{t("creator_fund_subtitle")}</p>
+      <p className="text-xs text-slate-500 mt-1">
+        {t("creator_fund_fee_note", { fee: (fee ?? 0.25).toFixed(2) })}
+      </p>
 
       <div className="mt-4 grid gap-3">
         <input className="border rounded px-3 py-2" placeholder={t("creator_fund_quest_id")} value={questId} onChange={(e) => setQuestId(e.target.value)} />

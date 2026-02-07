@@ -11,6 +11,7 @@ from app.schemas.judge import JudgeDecision, JudgeVoteIn
 from app.services.auth import get_current_user
 from app.services.judges import ensure_three_judges, mark_acceptance, flag_sla_missed
 from app.services.privy import sign_and_send_tx
+from app.services.wallets import ensure_user_wallet
 from app.services.ledger import record_release, record_refund, record_split
 
 router = APIRouter()
@@ -74,6 +75,25 @@ def vote_dispute(dispute_id: int, payload: JudgeVoteIn, db: Session = Depends(ge
     vote = JudgeVote(dispute_id=dispute_id, judge_user_id=user["id"], vote=payload.vote, split=payload.split, comment=payload.comment)
     db.add(vote)
     db.add(AuditLog(actor_id=user["id"], action="JUDGE_VOTE", details=str(payload.model_dump()), created_at=datetime.utcnow()))
+    wallet_id, _ = ensure_user_wallet(db, user["id"], email=user.get("email"), status=user.get("status"), roles=user.get("roles"))
+    vote_map = {
+        "WORKER": 1,
+        "SUCCESS": 1,
+        "CREATOR": 2,
+        "FAIL": 2,
+        "SPLIT": 3,
+    }
+    vote_type = vote_map.get(payload.vote, 3)
+    split_bps = int((payload.split or 0) * 100) if (payload.split or 0) <= 100 else int(payload.split or 0)
+    if wallet_id:
+        sign_and_send_tx({
+            "action": "submit_vote",
+            "dispute_id": dispute_id,
+            "vote_type": vote_type,
+            "split_bps": split_bps,
+            "comment": payload.comment,
+            "wallet_id": wallet_id,
+        })
     # Auto-resolve when 2 votes exist with same decision (MVP rule)
     votes = db.query(JudgeVote).filter(JudgeVote.dispute_id == dispute_id).all()
     if len(votes) >= 2:
@@ -84,8 +104,8 @@ def vote_dispute(dispute_id: int, payload: JudgeVoteIn, db: Session = Depends(ge
             if dispute:
                 dispute.status = "RESOLVED"
                 db.add(dispute)
-                # In MVP, backend would call protocol executeDecision here
-                sign_and_send_tx({"action": "execute_decision", "dispute_id": dispute_id, "decision": v0})
+                # Execute on-chain via dispute manager
+                sign_and_send_tx({"action": "finalize_execute", "dispute_id": dispute_id})
                 quest = db.get(Quest, dispute.quest_id)
                 if quest:
                     quest.status = "RESOLVED"

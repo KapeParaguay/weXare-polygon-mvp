@@ -11,6 +11,7 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    wallet_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     wallet_address: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     status: Mapped[str] = mapped_column(UserStatus, default="ACTIVE")
     roles: Mapped[str] = mapped_column(String, default="CREATOR")
